@@ -88,9 +88,9 @@ def scrolling():
     print('scrolling...')
     time.sleep(2)
     try:
-        target_section = driver.find_element(By.XPATH, '/html/body/div[1]/div[5]/div[2]/div/section')
+        target_section = driver.find_element(By.XPATH, '/html/body/div[1]/div[6]/div[2]/div/section')
     except:
-        target_section = driver.find_element(By.XPATH, '/html/body/div[2]/div[5]/div[2]/div/section[1]')
+        target_section = driver.find_element(By.XPATH, '/html/body/div[2]/div[6]/div[2]/div/section[1]')
         
     section_bottom = target_section.location['y'] + target_section.size['height']
     print("00_section_bottom:", section_bottom)
@@ -114,9 +114,9 @@ def scrolling():
 
         time.sleep(2)
         try:
-            target_section = driver.find_element(By.XPATH, '/html/body/div[1]/div[5]/div[2]/div/section')
+            target_section = driver.find_element(By.XPATH, '/html/body/div[1]/div[6]/div[2]/div/section')
         except:
-            target_section = driver.find_element(By.XPATH, '/html/body/div[2]/div[5]/div[2]/div/section[1]')
+            target_section = driver.find_element(By.XPATH, '/html/body/div[2]/div[6]/div[2]/div/section[1]')
         section_new_bottom = target_section.location['y'] + target_section.size['height']
         print("section_new_bottom:", section_new_bottom)
         
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     print('starting...')
     linksdf = pd.read_excel(linkslocation)
     links = linksdf['Link'].tolist()
-    for link in links[6:]:
+    for link in links:
         if str(link).startswith('http'):
             URL = link
         

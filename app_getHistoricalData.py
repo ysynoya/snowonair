@@ -1,4 +1,4 @@
-#TODO : 还啥都没改呢
+#获取historical
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -12,59 +12,67 @@ import datetime
 from openpyxl import Workbook
 import pandas as pd
 import openpyxl
+import os
 
-from env import URL, DriverLocation, outputlocation, linkslocation
+from env import URL, DriverLocation, outputlocationfolder, linkslocationfolder
 
 
-def get_data(driver):
+def get_data(driver,region):
     """
     this function get main text, score, name
     """
     print('get data...')
-    classoftable = 'styles_box__ukVBL'
-    
+            # store possible open and end date
+            # click historical data link
+    classofopenandclosedate = 'h3 styles_h3__rJrr7'
+    opendate = ''
+    closedate = ''
+    # averagesnowfall = ''
+    # snowfalldatys = ''
+    # averagebasedepth = ''
+    # maxbasedepth = ''
+    # biggestsnowfall = ''
+
+
+    # try:
+    #     datesifexist = driver.find_elements(By.CLASS_NAME,classofopenandclosedate)
+    #     opendate = datesifexist[0].text
+    #     closedate = datesifexist[1].text
+    # except:
+    #     pass
+    driver.get(URL.replace('skireport','historical-snowfall'))
+    print('loading page...')
+    while ifPageIsFullyLoaded(driver):
+        time.sleep(4)
+    print('loading page...2')
+    # time.sleep(2)
+    classoftable = 'styles_table__Z17oT'
     # classofcolumncontent = 'h4 styles_h4__x3zzi'
     # classofhref = 'styles_titleCell__5wNFE'
     # classofsnowtype = 'styles_small__5RsX3'
+    classofannualbutton = 'styles_active__oDQkX'
+    classofbuttonregion = 'styles_tabs__QXi8y'
     alltables = driver.find_elements(By.CLASS_NAME,classoftable)
     FOR_LOOP_COUNT = len(alltables)
     for i in range(FOR_LOOP_COUNT):
-        typename = alltables[i].find_element(By.XPATH, './/table/thead/tr/th[1]/div/div[1]/span[1]').text
-        if typename == 'Closed':
-            rows = alltables[i].find_elements(By.TAG_NAME, 'tr')
-            lst_data = []
-            for row in rows[1:]:
-                contents = row.find_elements(By.TAG_NAME, 'td')
-                name = contents[0].find_element(By.XPATH, './/a/span').text
-                link = contents[0].find_element(By.XPATH, './/a').get_attribute('href')
-                opendates = contents[1].find_element(By.XPATH, './/span').text
-                timeofreport = contents[0].find_element(By.XPATH, './/a/time').text
-                lst_data.append([name,link,opendates,timeofreport])
-        elif typename == 'No Report Available':
-            rows = alltables[i].find_elements(By.TAG_NAME, 'tr')
-            lst_data = []
-            for row in rows[1:]:
-                contents = row.find_elements(By.TAG_NAME, 'td')
-                name = contents[0].find_element(By.XPATH, './/a/span').text
-                link = contents[0].find_element(By.XPATH, './/a').get_attribute('href')
-                lst_data.append([name,link])
-        else:
-            rows = alltables[i].find_elements(By.TAG_NAME, 'tr')
-            lst_data = []
-            for row in rows[1:]:
-                contents = row.find_elements(By.TAG_NAME, 'td')
-                name = contents[0].find_element(By.XPATH, './/a/span').text
-                link = contents[0].find_element(By.XPATH, './/a').get_attribute('href')
-                snowfall = contents[1].find_element(By.XPATH, './/span').text
-                basedepth = contents[2].find_element(By.XPATH, './/span').text
-                snowtype = contents[2].find_element(By.XPATH, './/span/div').text
-                opentrails = contents[3].find_element(By.XPATH, './/span').text
-                openlifts = contents[4].find_element(By.XPATH, './/span').text
-                timeofreport = contents[0].find_element(By.XPATH, './/a/time').text
-                lst_data.append([name,link,snowfall,basedepth,snowtype,opentrails,openlifts,timeofreport])
-        write_to_xlsx(lst_data,typename)
+        if(i!=0):
+            button = driver.find_element(By.CLASS_NAME, classofbuttonregion).find_element(By.XPATH,'.//button[2]')
+            button.click()
+        rows = alltables[i].find_elements(By.TAG_NAME, 'tr')
+        lst_data = []
+        for row in rows[1:]:
+            month = row.find_element(By.TAG_NAME,'th').text
+            contents = row.find_elements(By.TAG_NAME, 'td')
+            averagesnow = contents[0].text
+            snowfalldays = contents[1].text
+            basedepth = contents[2].text
+            maxbasedepth = contents[3].text
+            biggestsnowfall = contents[4].text
+            lst_data.append([month,averagesnow,snowfalldays,basedepth,maxbasedepth,biggestsnowfall])
+        write_to_xlsx(lst_data,i,region)
+        print("id:",id,",i:",i)
     
-    return FOR_LOOP_COUNT
+    return opendate,closedate
 
 def ifGDRPNotice(driver):
     # check if the domain of the url is consent.google.com
@@ -78,119 +86,77 @@ def ifPageIsFullyLoaded(driver):
     return driver.execute_script('return document.readyState') != 'complete'
 
 
+def find_xlsx_files(directory):
+    xlsx_files = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".xlsx"):
+                xlsx_files.append(os.path.join(root, file))
+    return xlsx_files
 
-def scrolling():
-    print('scrolling...')
-    from selenium.webdriver.common.action_chains import ActionChains
-    from selenium.webdriver.common.keys import Keys
-    import time
-    from selenium.webdriver.common.by import By
-
-    print('scrolling...')
-    time.sleep(2)
-    try:
-        target_section = driver.find_element(By.XPATH, '/html/body/div[1]/div[5]/div[2]/div/section')
-    except:
-        target_section = driver.find_element(By.XPATH, '/html/body/div[2]/div[5]/div[2]/div/section[1]')
-        
-    section_bottom = target_section.location['y'] + target_section.size['height']
-    print("00_section_bottom:", section_bottom)
-    count = 0
-    countdifferent = 0
-
-    # 创建 ActionChains 对象
-    actions = ActionChains(driver)
-
-    while True:
-        current_scroll_y = driver.execute_script("return window.pageYOffset;")
-        print("current_scroll_y:", current_scroll_y)
-        # 如果页面当前滚动位置还未达到目标容器的底部，则模拟按 PageDown
-        if current_scroll_y + driver.execute_script("return window.innerHeight;") < section_bottom:
-            print("模拟按键 PAGE_DOWN")
-            actions.send_keys(Keys.PAGE_DOWN).perform()
-        else:
-            # 如果滚动位置已经接近目标位置，则发送少量 ARROW_DOWN 调整
-            print("模拟按键 ARROW_DOWN")
-            actions.send_keys(Keys.ARROW_DOWN).perform()
-
-        time.sleep(2)
-        try:
-            target_section = driver.find_element(By.XPATH, '/html/body/div[1]/div[5]/div[2]/div/section')
-        except:
-            target_section = driver.find_element(By.XPATH, '/html/body/div[2]/div[5]/div[2]/div/section[1]')
-        section_new_bottom = target_section.location['y'] + target_section.size['height']
-        print("section_new_bottom:", section_new_bottom)
-        
-        if section_new_bottom == section_bottom:
-            count += 1
-            if count > 6:
-                print("已滚动到指定容器的底部，没有更多内容。")
-                break
-        else:
-            countdifferent += 1  # 有变化时重置计数
-            try:
-                button_element = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[5]/div[2]/div/button'))
-                )
-                print("按钮元素已加载:", button_element)
-            except:
-                pass
-            count = 0
-        section_bottom = section_new_bottom
+# 示例用法
 
 
-
-def write_to_xlsx(data,name):
+def write_to_xlsx(data,name,region):
     print('write to excel...')
-    if name == 'Closed':
-        cols = ['name','link','Open Dates','time of report']
-    elif name == 'No Report Available':
-        cols = ['name','link']
+    yearormonth = ''
+    if name == 0:
+        cols = ['Month','Average Snowfall','Snowfall Days','Average Base Depth','Max Base Depth','Biggest Snowfall']
+        yearormonth = 'Month'
     else:
-        cols = ['name','link','Snowfall 24h','Base Depth','Snow Type','Open Trails','Open Lifts','time of report']
+        cols = ['Month','Average Snowfall','Snowfall Days','Average Base Depth','Max Base Depth','Biggest Snowfall']
+        yearormonth = 'Year'
     # cols = ["name", "comment", 'rating']
-    today = datetime.date.today()
+    today = datetime.date.today().year
     # today = datetime.datetime.now().strftime('%Y-%m-%d')
     df = pd.DataFrame(data, columns=cols)
-    df.to_excel(outputlocation+'\\'+str(today)+'_'+name+'_'+URL.split('/')[3]+'.xlsx')
+    df.to_excel(outputlocationfolder+'\\'+region+'_'+URL.split('/')[3]+'_'+str(id)+'_'+str(today)+'_'+yearormonth+'_'+URL.split('/')[4]+'.xlsx')
     
 
 if __name__ == "__main__":
 
     print('starting...')
-    linksdf = pd.read_excel(linkslocation)
-    links = linksdf['Link'].tolist()
-    for link in links[6:]:
-        if str(link).startswith('http'):
-            URL = link
-        
-    # get browser
-            options = Options()
-            # options.add_argument("--headless")  # show browser or not
-            options.add_argument("--lang=en-US")
-            options.add_experimental_option('prefs', {'intl.accept_languages': 'en,en_US'})
-            options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
-            options.add_argument("--disable-blink-features=AutomationControlled")
-            DriverPath = DriverLocation
-            service = Service(DriverPath)
-            driver = webdriver.Chrome(service=service, options=options)
+    lst_all_areas_date = []
+    # directory = "/path/to/your/folder"
+    xlsx_files = find_xlsx_files(linkslocationfolder)
+    for file in xlsx_files[:]:
+        currentregion = file.split('_')[-1].split('.')[0]
+        linksdf = pd.read_excel(file)
+        links = linksdf['link'].tolist()
+        id = 0
+        for link in links[0:5]:
             
-            driver.get(URL)
-            print('loading page...')
-            while ifPageIsFullyLoaded(driver):
-                time.sleep(3)
-            print('loading page...2')
-            ifGDRPNotice(driver)
-            while ifPageIsFullyLoaded(driver):
-                time.sleep(3)
-            print('loading page...3')
+            if str(link).startswith('http'):
+                URL = link
+            
+        # get browser
+                options = Options()
+                options.add_argument("--headless")  # show browser or not
+                options.add_argument("--lang=en-US")
+                options.add_experimental_option('prefs', {'intl.accept_languages': 'en,en_US'})
+                options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+                options.add_argument("--disable-blink-features=AutomationControlled")
+                DriverPath = DriverLocation
+                service = Service(DriverPath)
+                driver = webdriver.Chrome(service=service, options=options)
+                
+                # driver.get(URL)
+                # print('loading page...')
+                # while ifPageIsFullyLoaded(driver):
+                #     time.sleep(3)
+                # print('loading page...2')
+                # # ifGDRPNotice(driver)
+                # while ifPageIsFullyLoaded(driver):
+                #     time.sleep(3)
+                # print('loading page...3')
 
-            scrolling()
-            print('Getting data...')
+                print('Getting data...')
 
-            data = get_data(driver)
-
-            driver.close()
-
+                opendate,closedate = get_data(driver,currentregion)
+                lst_all_areas_date.append([currentregion,link,opendate,closedate])
+                driver.close()
+            id=id+1
+    # dfall = pd.DataFrame(lst_all_areas_date, columns=['region','links','opendate','closedate'])
+    # dfall.to_excel('allopenandclose.xlsx')
     # write_to_xlsx(data)
     print('Done!')
